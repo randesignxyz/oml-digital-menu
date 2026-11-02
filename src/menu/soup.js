@@ -37,12 +37,8 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
     page.className = 'soup-product-page';
     page.id = `${id}-product-${index}`;
     page.setAttribute('aria-label', name);
-    const artwork = document.createElement('a');
+    const artwork = document.createElement('div');
     artwork.className = 'soup-artwork';
-    artwork.target = '_blank';
-    artwork.rel = 'noopener';
-    artwork.href = new URL(`../../assets/images/${path}.png`, import.meta.url).href;
-    artwork.setAttribute('aria-label', `View ${name} full size in a new tab`);
     const image = document.createElement('img');
     image.src = new URL(`../../assets/images/${path}.webp`, import.meta.url).href;
     image.alt = `${name} — One More product sheet with packaging, sizes and Khmer product information`;

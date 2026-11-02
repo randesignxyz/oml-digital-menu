@@ -1865,7 +1865,7 @@ body:has(dialog[open]) {
   width: 100%;
   height: 100%;
   justify-content: center;
-  cursor: zoom-in;
+  cursor: default;
 }
 .soup-artwork img {
   display: block;

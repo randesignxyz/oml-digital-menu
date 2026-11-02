@@ -4,7 +4,7 @@ import { createMenuChapters } from './view.js';
 import { filterDishes, money } from './model.js';
 import { loadMenu } from './repository.js';
 import { readFavourites, writeFavourites } from './storage.js';
-import { createSoupCatalogue } from './soup.js?v=paired-chips';
+import { createSoupCatalogue } from './soup.js?v=non-clickable-images';
 import { pagesPerView, spreadStart, alignProduct } from './responsive.js?v=paired-chips';
 import { onSwipe } from '../book/swipe.js?v=responsive-devices';
 import { createPaperDrag } from '../book/paper-drag.js?v=destination-preview';
