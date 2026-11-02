@@ -52,7 +52,7 @@ export async function initMenu() {
     id: 'meeChietCatalogue',
     title: 'Mee Chiet',
     products: [{ name: 'Mee Chiet Cover', chip: 'Cover', path: 'Mee Chiet/Mee Chiet Cover' }, ...['Beef Stew Original', 'Minced Pork', 'Chicken Egg', 'Shrimp Sour Soup', 'Machu Kroeung Beef', 'Duck Stew', 'Lobster Sour Creamy Soup', 'Stir Fried Spicy Seafood', 'Stir Fried Salted Egg', 'Kuy Teav Minced Pork', 'Instant Vermicelli Minced Pork'].map((name, index) => ({
-      name, chip: name, path: `Mee Chiet/OMLArtboard 1 copy ${index + 1}@3x`,
+      name, chip: name.split(' ').map(word => word[0]).join(''), path: `Mee Chiet/OMLArtboard 1 copy ${index + 1}@3x`,
     }))],
   });
   $('dishes').before(meeChiet);
