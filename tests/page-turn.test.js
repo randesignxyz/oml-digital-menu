@@ -1,8 +1,39 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPageTurn } from '../src/book/page-turn.js';
+import { createPaperDrag } from '../src/book/paper-drag.js';
+
+test('finger-controlled turns retain left and right direction', () => {
+  const calls = [];
+  const drag = createPaperDrag({ clientWidth: 400 }, {
+    preview: (progress, options) => calls.push([progress, options.backwards]),
+  });
+  drag.onDrag(-100);
+  drag.onDrag(100);
+  assert.deepEqual(calls, [[0.25, false], [0.25, true]]);
+});
 
 const createSheet = (page) => ({ animate: page.animate, remove() {} });
+
+test('drag preview reveals the destination under the original snapshot and restores on cancel', async () => {
+  let current = 'original';
+  let snapshot;
+  const turn = createPageTurn(mockPage(() => {}), {
+    reducedMotion: () => false,
+    createSheet() {
+      snapshot = current;
+      return { animate: () => ({ seek() {}, reverse() {}, finished: Promise.resolve(), cancel() {} }), remove() {} };
+    },
+  });
+  turn.preview(0.4, { update: () => { current = 'next'; }, restore: () => { current = 'original'; } });
+  assert.equal(snapshot, 'original');
+  assert.equal(current, 'next');
+  turn.preview(0.6);
+  assert.equal(current, 'next');
+  turn.cancelPreview();
+  assert.equal(current, 'original');
+  await Promise.resolve();
+});
 
 test('finger movement seeks the curl and release resumes the same snapshot', async () => {
   const progress = [];
@@ -106,7 +137,7 @@ test('cancelled browser animations still commit the category and release the pag
   assert.equal(page.inert, false);
 });
 
-test('backward turns lay the incoming page over the outgoing sheet', async () => {
+test('backward turns mirror the fold on the outgoing sheet', async () => {
   const page = mockPage(() => {});
   let updated = false;
   const snapshots = [];
@@ -118,10 +149,10 @@ test('backward turns lay the incoming page over the outgoing sheet', async () =>
       return {
         animate(frames, options) {
           assert.equal(options.duration, 450);
-          assert.equal(snapshot.incoming, true);
+          assert.equal(snapshot.incoming, false);
           assert.equal(snapshots[0].removed, false);
-          assert.equal(frames[0].transform, 'rotateY(-100deg)');
-          assert.equal(frames.at(-1).transform, 'rotateY(0deg)');
+          assert.equal(options.backwards, true);
+          assert.equal(frames[0].transform, 'rotateY(0deg)');
           return { finished: Promise.resolve(), cancel() {} };
         },
         remove() { snapshot.removed = true; },
@@ -129,7 +160,7 @@ test('backward turns lay the incoming page over the outgoing sheet', async () =>
     },
   });
   await turn(() => { updated = true; }, { backwards: true });
-  assert.equal(snapshots.length, 2);
+  assert.equal(snapshots.length, 1);
   assert.ok(snapshots.every((snapshot) => snapshot.removed));
   assert.equal(page.inert, false);
 });

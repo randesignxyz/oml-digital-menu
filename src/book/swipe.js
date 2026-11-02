@@ -41,10 +41,12 @@ export function onSwipe(element, navigate, { ignore = () => false, onDrag = () =
       navigate(direction);
     }
   });
-  element.addEventListener('pointercancel', () => {
+  function cancelGesture() {
     if (start?.dragging) onRelease(false);
     start = null;
-  });
+  }
+  element.addEventListener('pointercancel', cancelGesture);
+  globalThis.addEventListener?.('resize', cancelGesture);
   element.addEventListener('dragstart', event => event.preventDefault());
   element.addEventListener('click', event => {
     if (!suppressClick || !event.isTrusted) return;

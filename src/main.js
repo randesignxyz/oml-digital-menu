@@ -1,3 +1,3 @@
-import { initMenu } from './menu/controller.js?v=finger-turn';
+import { initMenu } from './menu/controller.js?v=paired-chips';
 
 await initMenu();

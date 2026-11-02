@@ -1,12 +1,13 @@
-import { createPageTurn } from '../book/page-turn.js?v=finger-turn';
+import { createPageTurn } from '../book/page-turn.js?v=destination-preview';
 import { initMenuLayout } from './layout.js';
 import { createMenuChapters } from './view.js';
 import { filterDishes, money } from './model.js';
 import { loadMenu } from './repository.js';
 import { readFavourites, writeFavourites } from './storage.js';
-import { createSoupCatalogue } from './soup.js?v=horizontal-swipes';
-import { onSwipe } from '../book/swipe.js?v=paper-drag';
-import { createPaperDrag } from '../book/paper-drag.js?v=finger-turn';
+import { createSoupCatalogue } from './soup.js?v=paired-chips';
+import { pagesPerView, spreadStart, alignProduct } from './responsive.js?v=paired-chips';
+import { onSwipe } from '../book/swipe.js?v=responsive-devices';
+import { createPaperDrag } from '../book/paper-drag.js?v=destination-preview';
 
 export async function initMenu() {
   let loaded = false;
@@ -24,6 +25,8 @@ export async function initMenu() {
   const $ = (id) => document.getElementById(id);
   initMenuLayout({ dishes: $('dishes'), controls: $('menuView') });
   const turnPage = createPageTurn(document.querySelector('.book-page'));
+  const pageResize = new ResizeObserver(() => turnPage.resize());
+  pageResize.observe(document.querySelector('.book-page'));
   const soup = createSoupCatalogue({ turnPage });
   $('dishes').before(soup);
   document.querySelector('.controls').append(soup.querySelector('.soup-selector'));
@@ -229,6 +232,32 @@ export async function initMenu() {
     }),
   );
   $('dishes').setAttribute('aria-busy', 'true');
+  function previewDestination(direction, categoryOnly = false) {
+    if (!loaded) return null;
+    const catalogue = [soup, sauce, jebjub, meeChiet].find(item => !item.hidden);
+    if (!categoryOnly && catalogue && category !== 'Cover' && category !== 'Back Cover') {
+      const stage = catalogue.querySelector('.soup-stage');
+      const pages = [...stage.children];
+      const buttons = [...document.querySelector(`.soup-selector[data-catalogue="${catalogue.id}"]`).children];
+      const active = buttons.findIndex(button => button.getAttribute('aria-pressed') === 'true');
+      const count = pagesPerView(stage);
+      const next = spreadStart(active, count) + direction * count;
+      if (buttons[next]) {
+        const show = index => {
+          alignProduct(stage, pages, index);
+          buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+        };
+        return { update: () => show(next), restore: () => show(active) };
+      }
+    }
+    const original = category;
+    const next = navigation[navigation.indexOf(category) + direction];
+    if (!next) return null;
+    return {
+      update() { category = next; render(); category = original; },
+      restore() { category = original; render(); },
+    };
+  }
   function swipeCategory(direction) {
     if (!loaded) return;
     const next = navigation[navigation.indexOf(category) + direction];
@@ -238,7 +267,7 @@ export async function initMenu() {
     button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
   onSwipe($('categories'), swipeCategory, {
-    ...createPaperDrag(document.querySelector('.book-page'), turnPage),
+    ...createPaperDrag(document.querySelector('.book-page'), turnPage, direction => previewDestination(direction, true)),
     ignore: () => !loaded || document.querySelector('.book-page').classList.contains('page-turning'),
   });
   onSwipe(document.querySelector('.book-page'), direction => {
@@ -248,7 +277,8 @@ export async function initMenu() {
       const selector = document.querySelector(`.soup-selector[data-catalogue="${catalogue.id}"]`);
       const buttons = [...selector.children];
       const active = buttons.findIndex(button => button.getAttribute('aria-pressed') === 'true');
-      const next = buttons[active + direction];
+      const count = pagesPerView(catalogue.querySelector('.soup-stage'));
+      const next = buttons[spreadStart(active, count) + direction * count];
       if (next) {
         next.click();
         next.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
@@ -257,7 +287,7 @@ export async function initMenu() {
     }
     swipeCategory(direction);
   }, {
-    ...createPaperDrag(document.querySelector('.book-page'), turnPage),
+    ...createPaperDrag(document.querySelector('.book-page'), turnPage, previewDestination),
     ignore: target => !loaded || Boolean(target.closest('.controls')) || document.querySelector('.book-page').classList.contains('page-turning'),
   });
   $('resultCount').textContent = 'Loading menu…';

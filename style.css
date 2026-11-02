@@ -2132,6 +2132,9 @@ body:has(dialog[open]) {
   padding: 4px 12px;
   border-radius: 999px;
 }
+.menu-v2 .soup-selector button[hidden] {
+  display: none;
+}
 .menu-v2 .soup-selector[data-catalogue='meeChietCatalogue'] button {
   min-width: calc(4ch + 26px);
 }
@@ -2163,4 +2166,95 @@ body:has(dialog[open]) {
 .menu-v2 #categories.book-tabs button.active::after {
   right: -12px;
   background: radial-gradient(circle at bottom right, transparent 12px, var(--tab-color) 12.5px);
+}
+
+/* Responsive book: single pages on phones, spreads on wider screens. */
+.menu-v2 {
+  --pages-per-view: 1;
+  --spread-gap: 0px;
+  --spread-direction: row;
+  --menu-width: 100%;
+  --menu-height: 100dvh;
+  --menu-left: 0px;
+  --menu-top: 0px;
+  --nav-height: calc(61px + env(safe-area-inset-bottom));
+}
+.menu-v2 main {
+  width: var(--menu-width);
+  margin-left: var(--menu-left);
+  padding-top: calc(var(--menu-top) + env(safe-area-inset-top));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.menu-v2 .book-page,
+.menu-v2 .book-page.show-cover {
+  height: calc(var(--menu-height) - env(safe-area-inset-top) - var(--nav-height) - 8px);
+}
+.menu-v2 #categories.book-tabs {
+  left: var(--menu-left);
+  right: auto;
+  bottom: calc(100dvh - var(--menu-top) - var(--menu-height));
+  width: var(--menu-width);
+  height: var(--nav-height);
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.menu-v2 .soup-artwork img {
+  min-width: 0;
+  max-width: 100%;
+}
+.menu-v2 .soup-stage {
+  flex-direction: var(--spread-direction);
+  gap: var(--spread-gap);
+  scroll-snap-type: both mandatory;
+}
+.menu-v2 .soup-product-page {
+  flex-basis: calc((100% - var(--spread-gap)) / var(--pages-per-view));
+}
+@media (min-width: 900px), (min-width: 700px) and (orientation: landscape) {
+  .menu-v2 { --pages-per-view: 2; --spread-gap: 12px; }
+  .menu-v2 .menu-section:has(.book-page),
+  .menu-v2 .menu-section:has(.book-page.show-soup),
+  .menu-v2 .menu-section:has(.book-page.show-cover) { max-width: 1600px; }
+  .menu-v2 .soup-stage:has(> .soup-product-page:last-child:nth-child(odd))::after {
+    content: '';
+    flex: 0 0 calc((100% - var(--spread-gap)) / 2);
+  }
+}
+/* Surface Duo simulators can draw a hinge without exposing viewport segments.
+   Their spanned viewport is 1114px across, including a 34px hinge. */
+@media (width: 1114px) and (min-height: 500px) and (max-height: 740px) {
+  .menu-v2 {
+    --pages-per-view: 2;
+    --spread-gap: 34px;
+  }
+  .menu-v2 .book-page { border: 0; }
+}
+@media (height: 1114px) and (min-width: 500px) and (max-width: 740px) {
+  .menu-v2 {
+    --pages-per-view: 2;
+    --spread-direction: column;
+    --spread-gap: 34px;
+  }
+  .menu-v2 .soup-product-page { width: 100%; height: auto; }
+  .menu-v2 .soup-stage:has(> .soup-product-page:last-child:nth-child(odd))::after {
+    content: '';
+    flex: 0 0 calc((100% - var(--spread-gap)) / 2);
+  }
+}
+/* Device-reported segments take priority over the simulator fallback. */
+@media (horizontal-viewport-segments: 2) {
+  .menu-v2 {
+    --pages-per-view: 2;
+    --spread-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
+  }
+  .menu-v2 .book-page { border: 0; }
+}
+@media (vertical-viewport-segments: 2) {
+  .menu-v2 {
+    --pages-per-view: 2;
+    --spread-direction: column;
+    --spread-gap: calc(env(viewport-segment-top 0 1) - env(viewport-segment-bottom 0 0));
+  }
+  .menu-v2 .soup-product-page { width: 100%; height: auto; }
 }

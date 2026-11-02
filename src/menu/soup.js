@@ -1,3 +1,5 @@
+import { watchProductViewport, alignProduct, pagesPerView, spreadStart, chipGroup } from './responsive.js?v=paired-chips';
+
 export const soupProducts = ['Chicken Powder', 'Pork Powder', 'Vegetable Powder', 'Prahok Powder'];
 
 export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'Soup Powder', products = soupProducts.map(name => ({ name, chip: name.replace(' Powder', ''), path: `Soup Powder/${name}` })) }) {
@@ -17,6 +19,19 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
   stage.setAttribute('aria-label', `Scroll through ${title} products`);
   catalogue.append(selector, stage);
   const buttons = [];
+  let selectedIndex = 0;
+  function syncChips() {
+    const count = pagesPerView(stage);
+    const active = spreadStart(selectedIndex, count);
+    buttons.forEach((button, index) => {
+      button.hidden = index % count !== 0;
+      const group = chipGroup(products, index, count);
+      button.textContent = group.map(product => product.chip).join(' / ');
+      button.setAttribute('aria-label', group.map(product => product.name).join(' / '));
+      button.setAttribute('aria-controls', group.map((_, i) => `${id}-product-${index + i}`).join(' '));
+      button.setAttribute('aria-pressed', String(index === active));
+    });
+  }
   const pages = products.map(({ name, chip, path }, index) => {
     const page = document.createElement('article');
     page.className = 'soup-product-page';
@@ -49,28 +64,15 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
       if (index === active) return;
       turnPage(() => {
         // Move beneath the curling sheet; all products remain in the scroll area.
-        stage.scrollTo({
-          left: page.offsetLeft - pages[0].offsetLeft,
-          behavior: 'instant',
-        });
-        buttons.forEach((item, position) => item.setAttribute('aria-pressed', String(position === index)));
+        alignProduct(stage, pages, index);
+        selectedIndex = index;
+        syncChips();
       }, { backwards: index < active });
     };
     buttons.push(button);
     selector.append(button);
     return page;
   });
-  // Keep the header chips in sync with the product nearest the viewport centre.
-  stage.addEventListener('scroll', () => {
-    const centre = stage.getBoundingClientRect().left + stage.clientWidth / 2;
-    let active = 0;
-    let distance = Infinity;
-    pages.forEach((page, index) => {
-      const rect = page.getBoundingClientRect();
-      const nextDistance = Math.abs(rect.left + rect.width / 2 - centre);
-      if (nextDistance < distance) { active = index; distance = nextDistance; }
-    });
-    buttons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === active)));
-  }, { passive: true });
+  watchProductViewport(stage, pages, () => selectedIndex, ResizeObserver, syncChips);
   return catalogue;
 }

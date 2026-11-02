@@ -14,7 +14,8 @@ function createTurningSheet(page) {
     if (original.classList.contains('soup-product-page')) {
       const bounds = original.getBoundingClientRect();
       const viewport = original.parentElement.getBoundingClientRect();
-      if (bounds.right <= viewport.left + 1 || bounds.left >= viewport.right - 1) return null;
+      if (bounds.right <= viewport.left + 1 || bounds.left >= viewport.right - 1 ||
+          bounds.bottom <= viewport.top + 1 || bounds.top >= viewport.bottom - 1) return null;
     }
     const copy = original.cloneNode(false);
     copy.removeAttribute('id');
@@ -57,21 +58,30 @@ function createTurningSheet(page) {
   if (dishes && snapshotDishes) snapshotDishes.scrollTop = dishes.scrollTop;
   return {
     animate: (frames, options) => {
-      const backwards = frames[0].opacity === 0;
-      // Reversing an animation also reverses its easing curve. Mirror the
-      // supplied curve so backward turns keep the forward turn's pacing.
+      const backwards = Boolean(options.backwards);
+      // Both directions use identical timing; only the fold geometry changes.
       const timing = {
         ...options,
-        direction: backwards ? 'reverse' : 'normal',
-        easing: backwards ? 'cubic-bezier(.82, 0, .68, 1)' : options.easing,
+        direction: 'normal',
       };
-      const animation = sheet.animate([
+      const curlFrames = [
         { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%)', offset: 0 },
         { clipPath: 'polygon(0 0, 100% 0, 100% 68%, 68% 100%, 0 100%)', offset: .25 },
         { clipPath: 'polygon(0 0, 100% 0, 100% 15%, 15% 100%, 0 100%)', offset: .55 },
         { clipPath: 'polygon(0 0, 40% 0, 0 40%, 0 40%, 0 40%)', offset: .85 },
         { clipPath: 'polygon(0 0, 0 0, 0 0, 0 0, 0 0)', offset: 1 },
-      ], timing);
+      ];
+      if (backwards) {
+        // Mirror the fold geometry, while keeping artwork and text readable.
+        curlFrames.forEach(frame => {
+          frame.clipPath = frame.clipPath.replace(/(\d+)%? (\d+)%?/g,
+            (_, x, y) => `${100 - Number(x)}% ${y}%`);
+        });
+        curl.style.left = '0';
+        curl.style.right = 'auto';
+        curl.style.transform = 'scaleX(-1)';
+      }
+      const animation = sheet.animate(curlFrames, timing);
       const fold = curl.animate([
         { width: '0%', height: '0%', opacity: 0, offset: 0 },
         { width: '32%', height: '32%', opacity: 1, offset: .25 },
@@ -95,7 +105,7 @@ function createTurningSheet(page) {
   };
 }
 
-// Forward turns lift the old sheet; backward turns lay the previous page down.
+// Opposite navigation directions lift opposite corners of the outgoing sheet.
 export function createPageTurn(
   page,
   {
@@ -107,6 +117,7 @@ export function createPageTurn(
   let pending = null;
   let running = false;
   let preview = null;
+  let activeAnimation = null;
 
   async function flush() {
     running = true;
@@ -124,20 +135,12 @@ export function createPageTurn(
         const held = preview;
         preview = null;
         const sheet = held?.sheet || createSheet(page);
-        let incomingSheet;
         let animation;
         try {
           update();
-          // A returning page swings back onto the outgoing page from the spine.
-          if (backwards && !held) incomingSheet = createSheet(page);
-          animation = held?.animation || (incomingSheet || sheet).animate(
-            backwards
-              ? [
-                  { transform: 'rotateY(-100deg)', filter: 'brightness(.8)', opacity: 0 },
-                  { transform: 'rotateY(-65deg)', filter: 'brightness(.88)', opacity: 1, offset: 0.35 },
-                  { transform: 'rotateY(0deg)', filter: 'brightness(1)', opacity: 1 },
-                ]
-              : [
+          // Reveal the destination beneath the outgoing sheet in either direction.
+          animation = held?.animation || sheet.animate(
+            [
               {
                 transform: 'rotateY(0deg)',
                 filter: 'brightness(1)',
@@ -157,17 +160,19 @@ export function createPageTurn(
             ],
             {
               duration: 450,
+              backwards,
               easing: 'cubic-bezier(.32, 0, .18, 1)',
               fill: 'forwards',
             },
           );
           if (held) animation.play();
+          activeAnimation = animation;
           await animation.finished;
         } catch {
           // The live page is already updated if an animation is cancelled.
         } finally {
           animation?.cancel();
-          incomingSheet?.remove();
+          activeAnimation = null;
           sheet.remove();
         }
       }
@@ -182,19 +187,28 @@ export function createPageTurn(
     pending = { update, backwards };
     if (!running) return flush();
   }
-  turnPage.preview = progress => {
+  turnPage.preview = (progress, { backwards = false, update, restore } = {}) => {
     if (running || reducedMotion() || typeof page.animate !== 'function') return;
+    if (preview && preview.backwards !== backwards) turnPage.resize();
     if (!preview) {
       const sheet = createSheet(page);
+      update?.();
       const animation = sheet.animate([{ opacity: 1 }], {
-        duration: 450, easing: 'linear', fill: 'both',
+        duration: 450, easing: 'linear', fill: 'both', backwards,
       });
-      preview = { sheet, animation };
+      preview = { sheet, animation, backwards, restore };
     }
     preview.animation.seek(Math.max(0, Math.min(0.98, progress)));
   };
+  turnPage.restorePreview = () => {
+    if (!preview?.restore) return;
+    const restore = preview.restore;
+    preview.restore = null;
+    restore();
+  };
   turnPage.cancelPreview = () => {
     if (!preview) return;
+    turnPage.restorePreview();
     const held = preview;
     preview = null;
     held.animation.reverse();
@@ -202,6 +216,14 @@ export function createPageTurn(
       held.animation.cancel();
       held.sheet.remove();
     });
+  };
+  turnPage.resize = () => {
+    activeAnimation?.cancel();
+    if (!preview) return;
+    turnPage.restorePreview();
+    preview.animation.cancel();
+    preview.sheet.remove();
+    preview = null;
   };
   return turnPage;
 }
