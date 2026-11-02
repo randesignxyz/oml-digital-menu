@@ -3,16 +3,29 @@ function createTurningSheet(page) {
   layer.className = 'page-turn-layer';
   layer.setAttribute('aria-hidden', 'true');
   layer.inert = true;
-  const sheet = page.cloneNode(true);
-  // Freeze layout before changing tabs; ID-based rules no longer apply once
-  // snapshot IDs are removed, and the destination must not resize this sheet.
-  const originals = [page, ...page.querySelectorAll('*')];
-  const copies = [sheet, ...sheet.querySelectorAll('*')];
+  // Copy only visible content, rather than every product in every category.
+  // Keep layout values because the visual snapshot has no live element IDs.
   const layoutProperties = ['display', 'box-sizing', 'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'padding', 'margin', 'flex', 'flex-direction', 'flex-shrink', 'grid-template-columns', 'gap', 'overflow', 'font-family', 'font-size', 'line-height', 'object-fit'];
-  originals.forEach((original, index) => {
+  function copyVisible(original) {
+    if (original.nodeType !== 1) return original.cloneNode(true);
+    if (original.hidden) return null;
     const computed = getComputedStyle(original);
-    layoutProperties.forEach((property) => copies[index].style.setProperty(property, computed.getPropertyValue(property)));
-  });
+    if (computed.display === 'none') return null;
+    if (original.classList.contains('soup-product-page')) {
+      const bounds = original.getBoundingClientRect();
+      const viewport = original.parentElement.getBoundingClientRect();
+      if (bounds.right <= viewport.left + 1 || bounds.left >= viewport.right - 1) return null;
+    }
+    const copy = original.cloneNode(false);
+    copy.removeAttribute('id');
+    layoutProperties.forEach(property => copy.style.setProperty(property, computed.getPropertyValue(property)));
+    original.childNodes.forEach(child => {
+      const childCopy = copyVisible(child);
+      if (childCopy) copy.append(childCopy);
+    });
+    return copy;
+  }
+  const sheet = copyVisible(page);
   const rect = page.getBoundingClientRect();
   const parentRect = page.parentElement.getBoundingClientRect();
   Object.assign(layer.style, {
@@ -30,8 +43,6 @@ function createTurningSheet(page) {
     .forEach((element) => element.removeAttribute('id'));
   const dishes = page.querySelector('#dishes');
   const snapshotDishes = sheet.querySelector('.dish-grid');
-  const catalogues = page.querySelectorAll('.soup-stage');
-  const snapshotCatalogues = sheet.querySelectorAll('.soup-stage');
   if (dishes && snapshotDishes) {
     snapshotDishes.style.flex = '1';
     snapshotDishes.style.minHeight = '0';
@@ -44,9 +55,6 @@ function createTurningSheet(page) {
   layer.append(curl);
   page.parentElement.append(layer);
   if (dishes && snapshotDishes) snapshotDishes.scrollTop = dishes.scrollTop;
-  catalogues.forEach((stage, index) => {
-    if (snapshotCatalogues[index]) snapshotCatalogues[index].scrollTop = stage.scrollTop;
-  });
   return {
     animate: (frames, options) => {
       const backwards = frames[0].opacity === 0;
@@ -72,7 +80,14 @@ function createTurningSheet(page) {
         { width: '200%', height: '200%', opacity: 0, offset: 1 },
       ], timing);
       return {
-        finished: animation.finished,
+        get finished() { return animation.finished; },
+        seek(progress) {
+          animation.pause(); fold.pause();
+          animation.currentTime = progress * options.duration;
+          fold.currentTime = progress * options.duration;
+        },
+        play() { animation.playbackRate = 1; fold.playbackRate = 1; animation.play(); fold.play(); },
+        reverse() { animation.reverse(); fold.reverse(); },
         cancel() { animation.cancel(); fold.cancel(); },
       };
     },
@@ -91,6 +106,7 @@ export function createPageTurn(
 ) {
   let pending = null;
   let running = false;
+  let preview = null;
 
   async function flush() {
     running = true;
@@ -105,14 +121,16 @@ export function createPageTurn(
           update();
           continue;
         }
-        const sheet = createSheet(page);
+        const held = preview;
+        preview = null;
+        const sheet = held?.sheet || createSheet(page);
         let incomingSheet;
         let animation;
         try {
           update();
           // A returning page swings back onto the outgoing page from the spine.
-          if (backwards) incomingSheet = createSheet(page);
-          animation = (incomingSheet || sheet).animate(
+          if (backwards && !held) incomingSheet = createSheet(page);
+          animation = held?.animation || (incomingSheet || sheet).animate(
             backwards
               ? [
                   { transform: 'rotateY(-100deg)', filter: 'brightness(.8)', opacity: 0 },
@@ -138,11 +156,12 @@ export function createPageTurn(
               },
             ],
             {
-              duration: 1500,
+              duration: 450,
               easing: 'cubic-bezier(.32, 0, .18, 1)',
               fill: 'forwards',
             },
           );
+          if (held) animation.play();
           await animation.finished;
         } catch {
           // The live page is already updated if an animation is cancelled.
@@ -159,8 +178,30 @@ export function createPageTurn(
     }
   }
 
-  return function turnPage(update, { backwards = false } = {}) {
+  function turnPage(update, { backwards = false } = {}) {
     pending = { update, backwards };
     if (!running) return flush();
+  }
+  turnPage.preview = progress => {
+    if (running || reducedMotion() || typeof page.animate !== 'function') return;
+    if (!preview) {
+      const sheet = createSheet(page);
+      const animation = sheet.animate([{ opacity: 1 }], {
+        duration: 450, easing: 'linear', fill: 'both',
+      });
+      preview = { sheet, animation };
+    }
+    preview.animation.seek(Math.max(0, Math.min(0.98, progress)));
   };
+  turnPage.cancelPreview = () => {
+    if (!preview) return;
+    const held = preview;
+    preview = null;
+    held.animation.reverse();
+    held.animation.finished.catch(() => {}).finally(() => {
+      held.animation.cancel();
+      held.sheet.remove();
+    });
+  };
+  return turnPage;
 }

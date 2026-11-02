@@ -50,7 +50,7 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
       turnPage(() => {
         // Move beneath the curling sheet; all products remain in the scroll area.
         stage.scrollTo({
-          top: page.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop,
+          left: page.offsetLeft - pages[0].offsetLeft,
           behavior: 'instant',
         });
         buttons.forEach((item, position) => item.setAttribute('aria-pressed', String(position === index)));
@@ -62,12 +62,12 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
   });
   // Keep the header chips in sync with the product nearest the viewport centre.
   stage.addEventListener('scroll', () => {
-    const centre = stage.getBoundingClientRect().top + stage.clientHeight / 2;
+    const centre = stage.getBoundingClientRect().left + stage.clientWidth / 2;
     let active = 0;
     let distance = Infinity;
     pages.forEach((page, index) => {
       const rect = page.getBoundingClientRect();
-      const nextDistance = Math.abs(rect.top + rect.height / 2 - centre);
+      const nextDistance = Math.abs(rect.left + rect.width / 2 - centre);
       if (nextDistance < distance) { active = index; distance = nextDistance; }
     });
     buttons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === active)));

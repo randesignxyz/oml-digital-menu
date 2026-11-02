@@ -2100,11 +2100,16 @@ body:has(dialog[open]) {
   gap: 0;
 }
 .menu-v2 .soup-stage {
+  display: flex;
+  position: relative;
   border-radius: 0;
-  scrollbar-width: thin;
-  scroll-snap-type: y mandatory;
+  overflow: hidden;
+  scroll-snap-type: x mandatory;
 }
 .menu-v2 .soup-product-page {
+  flex: 0 0 100%;
+  min-width: 0;
+  border: 0;
   height: 100%;
   min-height: 0;
   aspect-ratio: auto;
@@ -2129,6 +2134,10 @@ body:has(dialog[open]) {
 }
 .menu-v2 .soup-selector[data-catalogue='meeChietCatalogue'] button {
   min-width: calc(4ch + 26px);
+}
+.menu-v2 .book-page,
+.menu-v2 #categories.book-tabs {
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Bottom navigation tabs connect upward toward the page. */

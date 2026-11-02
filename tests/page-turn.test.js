@@ -4,6 +4,34 @@ import { createPageTurn } from '../src/book/page-turn.js';
 
 const createSheet = (page) => ({ animate: page.animate, remove() {} });
 
+test('finger movement seeks the curl and release resumes the same snapshot', async () => {
+  const progress = [];
+  let snapshots = 0;
+  let played = 0;
+  const turn = createPageTurn(mockPage(() => {}), {
+    reducedMotion: () => false,
+    createSheet() {
+      snapshots++;
+      return {
+        animate() {
+          return { seek: value => progress.push(value), play: () => played++,
+            finished: Promise.resolve(), cancel() {} };
+        },
+        remove() {},
+      };
+    },
+  });
+  turn.preview(0.2);
+  turn.preview(0.5);
+  assert.deepEqual(progress, [0.2, 0.5]);
+  assert.equal(played, 0);
+  let updated = false;
+  await turn(() => { updated = true; });
+  assert.equal(updated, true);
+  assert.equal(snapshots, 1);
+  assert.equal(played, 1);
+});
+
 function mockPage(animate) {
   const classes = new Set();
   return {
@@ -88,7 +116,8 @@ test('backward turns lay the incoming page over the outgoing sheet', async () =>
       const snapshot = { incoming: updated, removed: false };
       snapshots.push(snapshot);
       return {
-        animate(frames) {
+        animate(frames, options) {
+          assert.equal(options.duration, 450);
           assert.equal(snapshot.incoming, true);
           assert.equal(snapshots[0].removed, false);
           assert.equal(frames[0].transform, 'rotateY(-100deg)');
