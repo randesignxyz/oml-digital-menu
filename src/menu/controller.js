@@ -1,30 +1,62 @@
-import { createPageTurn } from '../book/page-turn.js';
+import { createPageTurn } from '../book/page-turn.js?v=stable-frame';
 import { initMenuLayout } from './layout.js';
 import { createMenuChapters } from './view.js';
 import { filterDishes, money } from './model.js';
 import { loadMenu } from './repository.js';
 import { readFavourites, writeFavourites } from './storage.js';
+import { createSoupCatalogue } from './soup.js?v=sauce-catalogue';
 
 export async function initMenu() {
   let loaded = false;
   let items = [],
-    category = 'All dishes',
+    category = 'Cover',
     activeDish = null;
   const categories = [
     'All dishes',
     'Starters',
     'Pasta',
     'Pizza',
-    'Main courses',
-    'Desserts',
-    'Cocktails',
-    'Soft Drinks',
-    'Wine',
   ];
+  const navigation = ['Cover', ...categories, 'Back Cover'];
   const saved = readFavourites();
   const $ = (id) => document.getElementById(id);
   initMenuLayout({ dishes: $('dishes'), controls: $('menuView') });
   const turnPage = createPageTurn(document.querySelector('.book-page'));
+  const soup = createSoupCatalogue({ turnPage });
+  $('dishes').before(soup);
+  document.querySelector('.controls').append(soup.querySelector('.soup-selector'));
+  const sauce = createSoupCatalogue({
+    turnPage,
+    id: 'sauceCatalogue',
+    title: 'Sauce',
+    products: ['Oyster Sauce', 'Chicken Stock', 'Chili Sauce', 'Fish Sauce', 'Soy Sauce', 'Hoisin Sauce', 'Tomato Sauce', 'Vinegar', 'Fermented Soybean', 'Vegetable Oil'].map((name, index) => {
+      const number = index + 2;
+      return { name, chip: name, path: `Source /OMLArtboard 1 copy ${number}@3x` };
+    }),
+  });
+  $('dishes').before(sauce);
+  document.querySelector('.controls').append(sauce.querySelector('.soup-selector'));
+  const jebjub = createSoupCatalogue({
+    turnPage,
+    id: 'jebjubCatalogue',
+    title: 'Jeb Jub',
+    products: [
+      { name: 'Jeb Jub Cover', chip: 'Cover', path: 'Jeb Jub/Jeb Jub Cover' },
+      { name: 'Grilled Shrimp and Hot Spicy', chip: 'Grilled Shrimp & Hot Spicy', path: 'Jeb Jub/Grilled Shrimp and Hot Spicy' },
+    ],
+  });
+  $('dishes').before(jebjub);
+  document.querySelector('.controls').append(jebjub.querySelector('.soup-selector'));
+  const meeChiet = createSoupCatalogue({
+    turnPage,
+    id: 'meeChietCatalogue',
+    title: 'Mee Chiet',
+    products: [{ name: 'Mee Chiet Cover', chip: 'Cover', path: 'Mee Chiet/Mee Chiet Cover' }, ...['Beef Stew Original', 'Minced Pork', 'Chicken Egg', 'Shrimp Sour Soup', 'Machu Kroeung Beef', 'Duck Stew', 'Lobster Sour Creamy Soup', 'Stir Fried Spicy Seafood', 'Stir Fried Salted Egg', 'Kuy Teav Minced Pork', 'Instant Vermicelli Minced Pork'].map((name, index) => ({
+      name, chip: name, path: `Mee Chiet/OMLArtboard 1 copy ${index + 1}@3x`,
+    }))],
+  });
+  $('dishes').before(meeChiet);
+  document.querySelector('.controls').append(meeChiet.querySelector('.soup-selector'));
   let toastTimer;
   function toast(s) {
     $('toast').textContent = s;
@@ -46,16 +78,51 @@ export async function initMenu() {
   }
   function render() {
     if (!loaded) return;
+    const isCover = category === 'Cover' || category === 'Back Cover';
+    if (isCover) {
+      const isBackCover = category === 'Back Cover';
+      const coverImage = $('coverPage').querySelector('img');
+      coverImage.src = isBackCover ? 'assets/images/The last page or back cover.webp' : 'assets/images/oml-booklet-cover.webp';
+      coverImage.alt = isBackCover ? 'One More Cooking Essentials back cover' : 'One More Cooking Essentials. OML booklet cover.';
+      $('coverPage').setAttribute('aria-label', isBackCover ? 'One More Cooking Essentials back cover' : 'One More Cooking Essentials cover');
+    }
+    const isSoup = category === 'All dishes';
+    const isSauce = category === 'Starters';
+    const isJebJub = category === 'Pasta';
+    const isMeeChiet = category === 'Pizza';
+    document.querySelector('.book-page').classList.toggle('show-soup', isSoup || isSauce || isJebJub || isMeeChiet);
+    document.querySelector('.book-page').classList.toggle('show-sauce', isSauce || isJebJub || isMeeChiet);
+    soup.hidden = !isSoup;
+    sauce.hidden = !isSauce;
+    jebjub.hidden = !isJebJub;
+    meeChiet.hidden = !isMeeChiet;
+    document.querySelector('[data-catalogue="soupCatalogue"]').hidden = !isSoup;
+    document.querySelector('[data-catalogue="sauceCatalogue"]').hidden = !isSauce;
+    document.querySelector('[data-catalogue="jebjubCatalogue"]').hidden = !isJebJub;
+    document.querySelector('[data-catalogue="meeChietCatalogue"]').hidden = !isMeeChiet;
+    document.querySelector('.book-page').classList.toggle('show-cover', isCover);
+    $('coverPage').hidden = !isCover;
     let q = $('search').value.trim().toLocaleLowerCase(),
       filtered = filterDishes(items, { category, saved, query: q });
     $('categories')
       .querySelectorAll('button')
       .forEach((button) => {
-        const active = button.textContent === category;
+        const active = button.dataset.category === category;
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
       });
-    $('categoryTitle').textContent = q ? 'Search results' : category;
+    if (isCover) return;
+    if (isSoup || isSauce || isJebJub || isMeeChiet) {
+      $('categoryTitle').textContent = isMeeChiet ? 'Mee Chiet' : isJebJub ? 'Jeb Jub' : isSauce ? 'Sauce' : 'Soup Powder';
+      $('categoryTitle').lang = 'en';
+      $('resultCount').textContent = '';
+      $('empty').hidden = true;
+      return;
+    }
+    $('categoryTitle').removeAttribute('lang');
+    $('categoryTitle').textContent = q
+      ? 'Search results'
+      : category === 'All dishes' ? 'Soup Powder' : category === 'Starters' ? 'Sauce' : category;
     $('resultCount').textContent =
       `${filtered.length} ${filtered.length === 1 ? 'dish' : 'dishes'}`;
     $('dishes').replaceChildren(
@@ -127,11 +194,12 @@ export async function initMenu() {
     render();
   }
   $('categories').replaceChildren(
-    ...categories.map((name) => {
+    ...navigation.map((name) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.setAttribute('aria-controls', 'dishes');
-      b.textContent = name;
+      b.setAttribute('aria-controls', name === 'Cover' || name === 'Back Cover' ? 'coverPage' : name === 'All dishes' ? 'soupCatalogue' : name === 'Starters' ? 'sauceCatalogue' : name === 'Pasta' ? 'jebjubCatalogue' : name === 'Pizza' ? 'meeChietCatalogue' : 'dishes');
+      b.dataset.category = name;
+      b.textContent = name === 'All dishes' ? 'Soup Powder' : name === 'Starters' ? 'Sauce' : name === 'Pasta' ? 'Jeb Jub' : name === 'Pizza' ? 'Mee Chiet' : name;
       b.classList.toggle('active', category === name);
       b.setAttribute('aria-pressed', String(category === name));
       b.onclick = () => {
@@ -144,7 +212,7 @@ export async function initMenu() {
         )
           return;
         const backwards =
-          categories.indexOf(name) < categories.indexOf(category);
+          navigation.indexOf(name) < navigation.indexOf(category);
         $('menu').scrollIntoView({ block: 'start', behavior: 'instant' });
         turnPage(
           () => {

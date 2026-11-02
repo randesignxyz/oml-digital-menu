@@ -9,7 +9,7 @@ function make(tag, cls, text) {
 export function createDishCard(d, { saved, onToggle }) {
   let c = make('article', 'dish'),
     top = make('div', 'dish-top'),
-    label = make('span', 'category-label', d.category),
+    label = make('span', 'category-label', d.category === 'Starters' ? 'Sauce' : d.category),
     s = make('button', 'save', saved.has(d.id) ? '♥' : '♡');
   s.type = 'button';
   s.setAttribute(
@@ -71,12 +71,12 @@ export function createMenuChapters(
     const dishes = items.filter((dish) => dish.category === category);
     if (!dishes.length) return [];
     const chapter = make('section', 'menu-chapter');
-    const heading = make('h4', 'chapter-title', category);
+    const heading = make('h4', 'chapter-title', category === 'Starters' ? 'Sauce' : category);
     heading.id = `chapter-${index}`;
     if (showHeadings) {
       chapter.setAttribute('aria-labelledby', heading.id);
     } else {
-      chapter.setAttribute('aria-label', category);
+      chapter.setAttribute('aria-label', category === 'Starters' ? 'Sauce' : category);
     }
     if (showHeadings) chapter.append(heading);
     if (category === 'Wine') {

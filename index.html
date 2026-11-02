@@ -8,48 +8,24 @@
       name="description"
       content="Explore La Pizza's Italian menu. Browse starters, homemade pasta, pizza, main courses and desserts."
     />
-    <title>La Pizza · A little taste of Italy</title>
+    <title>One More Product</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link href="style.css?v=2-poppins-titles" rel="stylesheet" />
+    <link href="style.css?v=rounded-compact-navigation" rel="stylesheet" />
   </head>
   <body class="menu-v2">
-    <dialog id="bookCover" aria-label="La Pizza menu cover">
-      <button
-        id="openBook"
-        type="button"
-        aria-label="Open the food menu. Tap or swipe left."
-        autofocus
-      >
-        <img
-          src="assets/images/menu-cover.png"
-          width="1272"
-          height="1800"
-          alt="La Pizza. Cucina Italiana. Food menu. Phnom Penh, established 2026."
-          fetchpriority="high"
-        />
-        <span class="cover-cuisine" aria-hidden="true">CUCINA ITALIANA</span>
-        <span class="cover-prompt">
-          <svg class="cover-pizza" viewBox="0 0 160 150" aria-hidden="true">
-            <path d="M10 75 133 14Q155 75 133 136Z" fill="none" stroke="var(--red)" stroke-width="3" stroke-linejoin="round" />
-          </svg>
-          <span class="cover-prompt-label">Open Me</span>
-        </span>
-      </button>
-    </dialog>
     <a class="skip" href="#menu">Skip to menu</a>
     <main>
+      <header class="oml-cover-heading"><h1>One More Cooking Essentials</h1></header>
       <section id="menu" class="menu-section" aria-label="Food menu">
-        <nav
-          id="categories"
-          class="book-tabs"
-          aria-label="Menu category page tabs"
-        ></nav>
-        <div class="book-page">
+        <div class="book-page show-cover">
+          <div id="coverPage" aria-label="One More Cooking Essentials cover">
+            <img src="assets/images/oml-booklet-cover.webp" width="1400" height="1988" alt="One More Cooking Essentials. OML booklet cover." fetchpriority="high" />
+          </div>
           <div class="controls">
             <div class="category-summary">
               <h1 id="categoryTitle" class="category-title" tabindex="-1">
@@ -147,6 +123,11 @@
         </div>
       </section>
     </main>
+    <nav
+      id="categories"
+      class="book-tabs"
+      aria-label="Menu category page tabs"
+    ></nav>
     <dialog id="detail" aria-labelledby="detailName">
       <button class="close" aria-label="Close dish details">×</button>
       <p class="eyebrow" id="detailCategory"></p>
@@ -161,6 +142,6 @@
       </p>
     </dialog>
     <div id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="src/main.js?v=2-reveal-menu"></script>
+    <script type="module" src="src/main.js?v=stable-frame"></script>
   </body>
 </html>
