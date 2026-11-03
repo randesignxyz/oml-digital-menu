@@ -1,4 +1,5 @@
 import { watchProductViewport, alignProduct, pagesPerView, spreadStart, chipGroup } from './responsive.js?v=paired-chips';
+import { createChipNavigation } from './chip-navigation.js';
 
 export const soupProducts = ['Chicken Powder', 'Pork Powder', 'Vegetable Powder', 'Prahok Powder'];
 
@@ -17,7 +18,7 @@ export function createSoupCatalogue({ turnPage, id = 'soupCatalogue', title = 'S
   stage.className = 'soup-stage';
   stage.tabIndex = 0;
   stage.setAttribute('aria-label', `Scroll through ${title} products`);
-  catalogue.append(selector, stage);
+  catalogue.append(createChipNavigation(selector), stage);
   const buttons = [];
   let selectedIndex = 0;
   function syncChips() {

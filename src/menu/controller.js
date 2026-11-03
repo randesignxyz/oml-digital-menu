@@ -4,7 +4,7 @@ import { createMenuChapters } from './view.js';
 import { filterDishes, money } from './model.js';
 import { loadMenu } from './repository.js';
 import { readFavourites, writeFavourites } from './storage.js';
-import { createSoupCatalogue } from './soup.js?v=non-clickable-images';
+import { createSoupCatalogue } from './soup.js?v=chip-overflow';
 import { pagesPerView, spreadStart, alignProduct } from './responsive.js?v=paired-chips';
 import { onSwipe } from '../book/swipe.js?v=responsive-devices';
 import { createPaperDrag } from '../book/paper-drag.js?v=destination-preview';
@@ -29,7 +29,7 @@ export async function initMenu() {
   pageResize.observe(document.querySelector('.book-page'));
   const soup = createSoupCatalogue({ turnPage });
   $('dishes').before(soup);
-  document.querySelector('.controls').append(soup.querySelector('.soup-selector'));
+  document.querySelector('.controls').append(soup.querySelector('.soup-chip-nav'));
   const sauce = createSoupCatalogue({
     turnPage,
     id: 'sauceCatalogue',
@@ -40,7 +40,7 @@ export async function initMenu() {
     }),
   });
   $('dishes').before(sauce);
-  document.querySelector('.controls').append(sauce.querySelector('.soup-selector'));
+  document.querySelector('.controls').append(sauce.querySelector('.soup-chip-nav'));
   const jebjub = createSoupCatalogue({
     turnPage,
     id: 'jebjubCatalogue',
@@ -51,7 +51,7 @@ export async function initMenu() {
     ],
   });
   $('dishes').before(jebjub);
-  document.querySelector('.controls').append(jebjub.querySelector('.soup-selector'));
+  document.querySelector('.controls').append(jebjub.querySelector('.soup-chip-nav'));
   const meeChiet = createSoupCatalogue({
     turnPage,
     id: 'meeChietCatalogue',
@@ -61,7 +61,7 @@ export async function initMenu() {
     }))],
   });
   $('dishes').before(meeChiet);
-  document.querySelector('.controls').append(meeChiet.querySelector('.soup-selector'));
+  document.querySelector('.controls').append(meeChiet.querySelector('.soup-chip-nav'));
   let toastTimer;
   function toast(s) {
     $('toast').textContent = s;
@@ -232,10 +232,10 @@ export async function initMenu() {
     }),
   );
   $('dishes').setAttribute('aria-busy', 'true');
-  function previewDestination(direction, categoryOnly = false) {
+  function previewDestination(direction) {
     if (!loaded) return null;
     const catalogue = [soup, sauce, jebjub, meeChiet].find(item => !item.hidden);
-    if (!categoryOnly && catalogue && category !== 'Cover' && category !== 'Back Cover') {
+    if (catalogue && category !== 'Cover' && category !== 'Back Cover') {
       const stage = catalogue.querySelector('.soup-stage');
       const pages = [...stage.children];
       const buttons = [...document.querySelector(`.soup-selector[data-catalogue="${catalogue.id}"]`).children];
@@ -266,10 +266,6 @@ export async function initMenu() {
     button.click();
     button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
-  onSwipe($('categories'), swipeCategory, {
-    ...createPaperDrag(document.querySelector('.book-page'), turnPage, direction => previewDestination(direction, true)),
-    ignore: () => !loaded || document.querySelector('.book-page').classList.contains('page-turning'),
-  });
   onSwipe(document.querySelector('.book-page'), direction => {
     if (!loaded) return;
     const catalogue = [soup, sauce, jebjub, meeChiet].find(item => !item.hidden);

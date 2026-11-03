@@ -2032,11 +2032,11 @@ body:has(dialog[open]) {
 /* Keep category navigation within reach along the bottom of the screen. */
 .menu-v2 .menu-section {
   grid-template-columns: minmax(0, 1fr);
-  margin-bottom: calc(69px + env(safe-area-inset-bottom));
+  margin-bottom: calc(77px + env(safe-area-inset-bottom));
 }
 .menu-v2 .book-page,
 .menu-v2 .book-page.show-cover {
-  height: calc(100dvh - 69px - env(safe-area-inset-bottom));
+  height: calc(100dvh - 77px - env(safe-area-inset-bottom));
   box-shadow: none;
 }
 .menu-v2 #categories.book-tabs {
@@ -2044,9 +2044,9 @@ body:has(dialog[open]) {
   inset: auto 0 0;
   width: 100%;
   max-height: none;
-  height: calc(61px + env(safe-area-inset-bottom));
+  height: calc(69px + env(safe-area-inset-bottom));
   margin: 0;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
   flex-direction: row;
   gap: 6px;
   overflow-x: auto;
@@ -2138,9 +2138,55 @@ body:has(dialog[open]) {
 .menu-v2 .soup-selector[data-catalogue='meeChietCatalogue'] button {
   min-width: calc(4ch + 26px);
 }
-.menu-v2 .book-page,
-.menu-v2 #categories.book-tabs {
+.menu-v2 .book-page {
+  touch-action: auto;
+}
+.menu-v2 .soup-stage,
+.menu-v2 #coverPage {
   touch-action: pan-y pinch-zoom;
+}
+.menu-v2 #categories.book-tabs {
+  touch-action: pan-x pinch-zoom;
+}
+.menu-v2 .soup-chip-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+.menu-v2 .soup-chip-nav:has(> .soup-selector[hidden]) {
+  display: none;
+}
+.menu-v2 .soup-chip-nav > .soup-selector {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pinch-zoom;
+  scrollbar-width: thin;
+}
+.menu-v2 .soup-chip-nav .chip-scroll {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--red);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.menu-v2 .soup-chip-nav .chip-scroll:disabled {
+  color: var(--muted);
+  opacity: 0.35;
+  cursor: default;
+}
+.menu-v2 .soup-chip-nav .chip-scroll[hidden] {
+  display: none;
 }
 
 /* Bottom navigation tabs connect upward toward the page. */
@@ -2177,7 +2223,7 @@ body:has(dialog[open]) {
   --menu-height: 100dvh;
   --menu-left: 0px;
   --menu-top: 0px;
-  --nav-height: calc(61px + env(safe-area-inset-bottom));
+  --nav-height: calc(69px + env(safe-area-inset-bottom));
 }
 .menu-v2 main {
   width: var(--menu-width);

@@ -1,3 +1,3 @@
-import { initMenu } from './menu/controller.js?v=non-clickable-images';
+import { initMenu } from './menu/controller.js?v=chip-overflow';
 
 await initMenu();
